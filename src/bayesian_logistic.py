@@ -2,7 +2,7 @@ import pymc as pm
 import numpy as np
 import arviz as az
 
-def train_bayesian_logistic(X_train, y_train, draws=1000, tune=1000):
+def train_bayesian_logistic(X_train, y_train, draws=500, tune=500):
     """
     Treina uma regressão logística bayesiana usando PyMC.
     """
@@ -27,10 +27,13 @@ def train_bayesian_logistic(X_train, y_train, draws=1000, tune=1000):
             observed=y_train
         )
 
-        # Sampling
+        # Sampling (mais rápido)
         trace = pm.sample(
             draws=draws,
             tune=tune,
+            chains=2,
+            cores=2,
+            init="adapt_diag",
             target_accept=0.9,
             return_inferencedata=True,
             progressbar=True
