@@ -1,8 +1,33 @@
+# ===============================
+# Ambientes virtuais
+# ===============================
 .venv/
+
+# ===============================
+# Cache e arquivos Python
+# ===============================
+__pycache__/
 src/__pycache__/
+src/interpretation/__pycache__/
 *.pyc
 .ipynb_checkpoints/
 
-# Resultados gerados automaticamente
+# ===============================
+# Variáveis de ambiente
+# ===============================
+.env
+
+# ===============================
+# Resultados e dados gerados automaticamente
+# ===============================
 results/
 data/
+outputs/
+
+# ===============================
+# Artefatos de dados e modelos
+# ===============================
+*.csv
+*.json
+*.pkl
+*.nc
