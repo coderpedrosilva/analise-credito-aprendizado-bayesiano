@@ -8,14 +8,19 @@ def preprocess_data(
 ):
     df = pd.read_csv(input_path)
 
-    X = df.drop("aprovado_credito", axis=1)
+    # 🔹 Separar target
     y = df["aprovado_credito"]
+
+    # 🔹 Remover colunas que NÃO entram no modelo
+    X = df.drop(columns=["aprovado_credito", "client_id"])
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
+    # 🔹 Dataset processado (mantendo client_id para uso futuro)
     df_processed = pd.DataFrame(X_scaled, columns=X.columns)
     df_processed["aprovado_credito"] = y.values
+    df_processed["client_id"] = df["client_id"].values
 
     df_processed.to_csv(output_path, index=False)
 

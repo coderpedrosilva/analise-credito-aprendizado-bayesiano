@@ -48,6 +48,7 @@ def generate_dataset(n_samples=1500, output_path="data/raw/dados_credito_sinteti
 
     aprovado_credito = np.random.binomial(1, prob_aprovacao)
 
+    # 🔹 Criação do DataFrame
     df = pd.DataFrame({
         "idade": idade,
         "renda_mensal": renda_mensal.round(2),
@@ -57,6 +58,14 @@ def generate_dataset(n_samples=1500, output_path="data/raw/dados_credito_sinteti
         "historico_inadimplencia": historico_inadimplencia,
         "aprovado_credito": aprovado_credito
     })
+
+    df["client_id"] = [f"Cliente {i+1}" for i in range(len(df))]
+
+    df = df[
+        ["client_id", "idade", "renda_mensal", "score_credito",
+         "valor_solicitado", "taxa_endividamento",
+         "historico_inadimplencia", "aprovado_credito"]
+    ]
 
     df.to_csv(output_path, index=False)
     print("✅ Dataset sintético gerado com sucesso!")
