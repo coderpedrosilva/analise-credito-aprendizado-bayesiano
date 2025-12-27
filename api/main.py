@@ -1,8 +1,12 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from src.preprocess import preprocess_data
 from src.inference import predict_proba
 
 app = FastAPI(title="API de Crédito Bayesiana")
+
+# Frontend agora em /ui (não sobrescreve a API)
+app.mount("/ui", StaticFiles(directory="api/static", html=True), name="static")
 
 @app.get("/clientes")
 def listar_clientes():
@@ -14,7 +18,11 @@ def listar_clientes():
         clientes.append({
             "cliente": df_test.iloc[i]["client_id"],
             "prob_aprovacao": round(float(prob), 3),
-            "status": "Aprovado" if prob >= 0.75 else "Análise" if prob >= 0.6 else "Reprovado"
+            "status": (
+                "Aprovado" if prob >= 0.25
+                else "Análise Manual" if prob >= 0.1
+                else "Reprovado"
+            )
         })
 
     return clientes
