@@ -87,6 +87,63 @@ O pipeline:
 
 ---
 
+## 🧠 Como acontece o treinamento de Machine Learning
+
+O treinamento neste projeto ocorre de forma **offline e totalmente automatizada**, seguindo um pipeline de engenharia de Machine Learning semelhante ao utilizado em sistemas reais de análise de crédito.
+
+### 1️⃣ Geração dos dados
+
+O processo inicia com a **geração de um dataset sintético realista**, simulando atributos comuns em decisões de crédito, como:
+
+- Idade  
+- Renda mensal  
+- Score de crédito  
+- Valor solicitado  
+- Taxa de endividamento  
+- Histórico de inadimplência  
+
+Esses dados são gerados por distribuições estatísticas calibradas, permitindo simular cenários reais de concessão de crédito.
+
+### 2️⃣ Construção do rótulo (aprovação)
+
+A variável alvo (`aprovado_credito`) não é aleatória.  
+Ela é calculada por uma **função logística de risco**, que combina as variáveis de entrada e gera uma **probabilidade real de aprovação**.
+
+Essa probabilidade é utilizada para gerar o rótulo final de forma estocástica, simulando decisões reais de crédito.
+
+### 3️⃣ Pré-processamento
+
+Antes do treinamento, os dados passam por:
+
+- Normalização (StandardScaler)  
+- Separação em treino e teste  
+- Organização em matrizes próprias para modelagem  
+
+### 4️⃣ Treinamento dos modelos
+
+Dois modelos são treinados:
+
+- **Naive Bayes** como baseline probabilístico  
+- **Regressão Logística Bayesiana** como modelo principal  
+
+O modelo bayesiano é treinado via **MCMC com NUTS (No-U-Turn Sampler)**, estimando distribuições completas dos parâmetros ao invés de apenas valores pontuais.
+
+### 5️⃣ Persistência do modelo
+
+Após o treinamento, o conhecimento aprendido é salvo em disco no formato **NetCDF (`.nc`)**, contendo o posterior bayesiano completo.  
+Esse arquivo representa o modelo treinado e é utilizado posteriormente pela API para inferência.
+
+### 6️⃣ Inferência em produção
+
+A API apenas carrega o modelo salvo e utiliza os parâmetros médios das distribuições para calcular **probabilidades individuais de aprovação de crédito**, sem necessidade de retreinamento.
+
+Isso separa claramente:
+
+- Fase de treinamento (offline)  
+- Fase de decisão (online)  
+
+---
+
 ## 🌐 API de Inferência
 
 Após o treino:
