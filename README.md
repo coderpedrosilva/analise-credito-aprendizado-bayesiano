@@ -48,21 +48,29 @@ analise-credito-aprendizado-bayesiano/
 ├── assets/
 ├── data/ (gitignored)
 ├── models/ (gitignored)
-│   └── bayesian_credit_trace.nc
+│   ├── bayesian_credit_trace.nc
+│   └── scaler.joblib
 ├── results/ (gitignored)
-├── src/  
-│   ├── inference.py
+├── src/
 │   ├── generate_data.py
 │   ├── pipeline.py
-│   └── ...
+│   ├── preprocess.py
+│   ├── naive_bayes.py
+│   ├── bayesian_logistic.py
+│   ├── evaluate_models.py
+│   ├── inference.py
+│   ├── interpretation/
+│   │   └── coefficients.py
+│   └── utils/
+│       ├── save_results.py
+│       └── save_trace.py
 ├── main.py
 └── requirements.txt
-└── ...
 ```
 
 ---
 
-## ⚙️ Por que Python 3.11?
+## ⚙️ Por que Python 3.10?
 
 - Melhor desempenho  
 - Melhor gerenciamento de memória  
@@ -79,11 +87,12 @@ python main.py
 O pipeline:
 
 1. Gera dados sintéticos  
-2. Pré-processa dados  
-3. Treina modelos  
-4. Avalia modelos  
-5. Persiste modelo bayesiano  
-6. Salva métricas e coeficientes  
+2. Pré-processa dados (split → fit scaler no treino → transform no teste)  
+3. Treina modelos (Naive Bayes + Regressão Logística Bayesiana)  
+4. Exibe diagnósticos de convergência MCMC (R-hat, ESS, divergências)  
+5. Avalia modelos (accuracy + ROC-AUC)  
+6. Persiste modelo bayesiano e scaler  
+7. Salva métricas e coeficientes  
 
 ---
 
@@ -115,9 +124,9 @@ Essa probabilidade é utilizada para gerar o rótulo final de forma estocástica
 
 Antes do treinamento, os dados passam por:
 
-- Normalização (StandardScaler)  
-- Separação em treino e teste  
-- Organização em matrizes próprias para modelagem  
+- Separação em treino e teste **antes** da normalização (evita data leakage)  
+- Normalização com `StandardScaler` fitado **somente** no conjunto de treino  
+- Scaler persistido em `models/scaler.joblib` para inferência futura com dados novos  
 
 ### 4️⃣ Treinamento dos modelos
 
@@ -130,8 +139,12 @@ O modelo bayesiano é treinado via **MCMC com NUTS (No-U-Turn Sampler)**, estima
 
 ### 5️⃣ Persistência do modelo
 
-Após o treinamento, o conhecimento aprendido é salvo em disco no formato **NetCDF (`.nc`)**, contendo o posterior bayesiano completo.  
-Esse arquivo representa o modelo treinado e é utilizado posteriormente pela API para inferência.
+Após o treinamento, dois artefatos são salvos em disco:
+
+- **`models/bayesian_credit_trace.nc`** — posterior bayesiano completo em formato NetCDF  
+- **`models/scaler.joblib`** — scaler treinado, necessário para normalizar dados novos com os mesmos parâmetros
+
+Esses artefatos são carregados pela API para inferência sem necessidade de retreinamento.
 
 ### 6️⃣ Inferência em produção
 
@@ -163,9 +176,11 @@ http://127.0.0.1:8000/ui
 
 A interface consome a API e exibe:
 
-- Cliente  
-- Probabilidade de aprovação  
-- Status (Aprovado / Análise Manual / Reprovado)
+- **Cards de resumo** com total de clientes e contagem por status  
+- **Campo de busca** por nome do cliente  
+- **Filtro por status** (Aprovado / Análise Manual / Reprovado)  
+- **Tabela completa** com probabilidade de aprovação e status de cada cliente  
+- Contador dinâmico indicando quantos registros estão sendo exibidos
 
 ---
 
@@ -177,20 +192,23 @@ A interface consome a API e exibe:
 | 0.25 – 0.34           | Análise Manual      | Cliente com risco intermediário |
 | < 0.25                | Reprovado           | Cliente com alto risco de inadimplência |
 
-![Tela de Análise de Crédito](assets/screenshot-ui.png)
+![Tela de Análise de Crédito](assets/screenshot-ui-v2.png)
 
 ---
 
 ## 📈 Interpretação Bayesiana
 
-Coeficientes analisados por HDI 95%.
+Coeficientes do modelo analisados por HDI 95% (última execução do pipeline).  
+Features cujo intervalo **não cruza zero** têm efeito consistente e confiável sobre a decisão.
 
-| Feature | Mean | HDI 2.5% | HDI 97.5% |
-|--------|-----|---------|----------|
-| coef_3 | -0.486 | -0.839 | -0.130 |
-| coef_4 | -0.513 | -0.858 | -0.164 |
-
-Features cujo HDI não cruza zero têm efeito consistente.
+| Feature                   | Mean   | HDI 2.5% | HDI 97.5% | Efeito         |
+|---------------------------|--------|----------|-----------|----------------|
+| score_credito             | +0.421 | +0.278   | +0.578    | ✅ Positivo    |
+| renda_mensal              | +0.179 | +0.055   | +0.295    | ✅ Positivo    |
+| historico_inadimplencia   | -0.520 | -0.693   | -0.384    | ❌ Negativo    |
+| taxa_endividamento        | -0.257 | -0.368   | -0.122    | ❌ Negativo    |
+| valor_solicitado          | -0.229 | -0.345   | -0.095    | ❌ Negativo    |
+| idade                     | +0.030 | -0.109   | +0.167    | ➖ Inconclusivo |
 
 ---
 
