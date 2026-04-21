@@ -157,6 +157,16 @@ Isso separa claramente:
 
 ---
 
+## 🏋️ Treinamento
+
+Execute o pipeline uma vez para gerar os dados, treinar o modelo e persistir os artefatos:
+
+```bash
+python ./main.py
+```
+
+---
+
 ## 🌐 API de Inferência
 
 Após o treino:
