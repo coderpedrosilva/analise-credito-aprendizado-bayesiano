@@ -1,17 +1,30 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from src.preprocess import preprocess_data
 from src.inference import predict_proba
 
-app = FastAPI(title="API de Crédito Bayesiana")
+_cache: dict = {}
 
-# Frontend agora em /ui (não sobrescreve a API)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _, X_test, _, _, df_test = preprocess_data(return_df=True)
+    _cache["X_test"] = X_test
+    _cache["df_test"] = df_test
+    yield
+    _cache.clear()
+
+
+app = FastAPI(title="API de Crédito Bayesiana", lifespan=lifespan)
+
 app.mount("/ui", StaticFiles(directory="api/static", html=True), name="static")
+
 
 @app.get("/clientes")
 def listar_clientes():
-    X_train, X_test, y_train, y_test, df_test = preprocess_data(return_df=True)
-    probs = predict_proba(X_test)
+    probs = predict_proba(_cache["X_test"])
+    df_test = _cache["df_test"]
 
     clientes = []
     for i, prob in enumerate(probs):

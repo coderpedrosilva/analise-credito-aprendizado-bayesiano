@@ -39,7 +39,28 @@ def train_bayesian_logistic(X_train, y_train, draws=200, tune=200):
             progressbar=True
         )
 
+    _print_convergence_diagnostics(trace)
+
     return model, trace
+
+
+def _print_convergence_diagnostics(trace):
+    rhat = az.rhat(trace)
+    ess = az.ess(trace)
+
+    rhat_max = float(rhat.to_array().max())
+    ess_min = float(ess.to_array().min())
+
+    rhat_ok = "✅" if rhat_max <= 1.01 else "⚠️"
+    ess_ok = "✅" if ess_min >= 100 else "⚠️"
+
+    print("\n🔍 Diagnósticos de convergência MCMC:")
+    print(f"  R-hat máximo : {rhat_max:.4f}  {rhat_ok}  (ideal ≤ 1.01)")
+    print(f"  ESS mínimo   : {ess_min:.0f}      {ess_ok}  (ideal ≥ 100)")
+
+    n_divergences = int(trace.sample_stats["diverging"].values.sum())
+    div_ok = "✅" if n_divergences == 0 else "⚠️"
+    print(f"  Divergências : {n_divergences}         {div_ok}  (ideal = 0)")
 
 
 def summarize_model(trace):
